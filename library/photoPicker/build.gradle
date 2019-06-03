@@ -2,15 +2,21 @@ apply plugin: 'com.android.library'
 version = "1.1.0" // 版本号
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion "23"
+    compileSdkVersion rootProject.ext.android["compileSdkVersion"]
+    buildToolsVersion rootProject.ext.android["buildToolsVersion"]
     resourcePrefix "imgsel"
 
+    compileOptions {
+        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_1_8
+    }
+
     defaultConfig {
-        minSdkVersion 15
-        targetSdkVersion 23
-        versionCode 5
-        versionName "1.1.0"
+        minSdkVersion rootProject.ext.android["minSdkVersion"]
+        targetSdkVersion rootProject.ext.android["targetSdkVersion"]
+        versionCode rootProject.ext.android["versionCode"]
+        versionName rootProject.ext.android["versionName"]
+        javaCompileOptions { annotationProcessorOptions { includeCompileClasspath = true } }
     }
     buildTypes {
         release {
@@ -21,9 +27,9 @@ android {
 }
 
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
-    compile 'com.yuyh.easyadapter:library:1.0.0'
-    compile project(':library:common')
+    api fileTree(include: ['*.jar'], dir: 'libs')
+    api 'com.yuyh.easyadapter:library:1.0.0'
+    api project(':library:common')
 //    compile 'com.android.support:appcompat-v7:23.0.1'
 //    compile 'com.android.support:support-v4:23.0.1'
 //    compile 'com.android.support:recyclerview-v7:23.0.1'
