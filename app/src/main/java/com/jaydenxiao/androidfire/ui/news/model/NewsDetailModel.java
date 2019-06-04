@@ -1,16 +1,14 @@
 package com.jaydenxiao.androidfire.ui.news.model;
 
-import com.jaydenxiao.androidfire.api.Api;
-import com.jaydenxiao.androidfire.api.HostType;
+import com.jaydenxiao.androidfire.api.NetEastService;
 import com.jaydenxiao.androidfire.bean.NewsDetail;
 import com.jaydenxiao.androidfire.ui.news.contract.NewsDetailContract;
 import com.jaydenxiao.common.baserx.RxSchedulers;
+import com.jaydenxiao.common.http.Api;
 
 import java.util.List;
-import java.util.Map;
 
 import rx.Observable;
-import rx.functions.Func1;
 
 /**
  * des:新闻详情
@@ -21,17 +19,15 @@ public class NewsDetailModel implements NewsDetailContract.Model {
 
     @Override
     public Observable<NewsDetail> getOneNewsData(final String postId) {
-        return Api.getDefault(HostType.NETEASE_NEWS_VIDEO).getNewDetail(Api.getCacheControl(),postId)
-                .map(new Func1<Map<String, NewsDetail>, NewsDetail>() {
-                    @Override
-                    public NewsDetail call(Map<String, NewsDetail> map) {
-                        NewsDetail newsDetail = map.get(postId);
-                        changeNewsDetail(newsDetail);
-                        return newsDetail;
-                    }
-                })
-                .compose(RxSchedulers.<NewsDetail>io_main());
+
+        return Api.getService(NetEastService.class).getNewDetail(Api.getCacheControl(), postId)
+                .map(map -> {
+                    NewsDetail newsDetail = map.get(postId);
+                    changeNewsDetail(newsDetail);
+                    return newsDetail;
+                }).compose(RxSchedulers.io_main());
     }
+
     private void changeNewsDetail(NewsDetail newsDetail) {
         List<NewsDetail.ImgBean> imgSrcs = newsDetail.getImg();
         if (isChange(imgSrcs)) {

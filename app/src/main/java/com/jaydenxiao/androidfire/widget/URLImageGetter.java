@@ -23,10 +23,10 @@ import android.support.annotation.Nullable;
 import android.text.Html;
 import android.widget.TextView;
 
+import com.jaydenxiao.androidfire.api.KakuService;
 import com.jaydenxiao.androidfire.app.AppApplication;
 import com.jaydenxiao.androidfire.R;
-import com.jaydenxiao.androidfire.api.Api;
-import com.jaydenxiao.androidfire.api.HostType;
+import com.jaydenxiao.common.http.Api;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -92,7 +92,7 @@ public class URLImageGetter implements Html.ImageGetter {
 
     @NonNull
     private Drawable getDrawableFromNet(final String source) {
-        mSubscription = Api.getDefault(HostType.NEWS_DETAIL_HTML_PHOTO)
+        mSubscription = Api.getService(KakuService.class)
                 .getNewsBodyHtmlPhoto(Api.getCacheControl(),source)
                 .unsubscribeOn(Schedulers.io())
                 .subscribeOn(Schedulers.io())

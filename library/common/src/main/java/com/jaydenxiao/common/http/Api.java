@@ -1,9 +1,8 @@
-package com.jaydenxiao.androidfire.api;
+package com.jaydenxiao.common.http;
 
 
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
-import android.util.SparseArray;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -12,10 +11,12 @@ import com.jaydenxiao.common.commonutils.NetWorkUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Cache;
 import okhttp3.CacheControl;
+import okhttp3.Headers;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -27,18 +28,18 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
  * des:retorfit api
- * Created by xsf
- * on 2016.06.15:47
  */
-public class Api {
+public class Api<T> {
     //读超时长，单位：毫秒
-    public static final int READ_TIME_OUT = 7676;
+    private static final int READ_TIME_OUT = 7676;
     //连接时长，单位：毫秒
-    public static final int CONNECT_TIME_OUT = 7676;
-    public Retrofit retrofit;
-    public ApiService movieService;
-    public OkHttpClient okHttpClient;
-    private static SparseArray<Api> sRetrofitManager = new SparseArray<>(HostType.TYPE_COUNT);
+    private static final int CONNECT_TIME_OUT = 7676;
+    private Retrofit retrofit;
+    private T mService;
+    private OkHttpClient okHttpClient;
+
+    private static IApiProvider mProvider;
+    private static HashMap<String, Api> sRetrofitManager = new HashMap<>();
 
     /*************************缓存设置*********************/
 /*
@@ -73,9 +74,8 @@ public class Api {
      */
     private static final String CACHE_CONTROL_AGE = "max-age=0";
 
-
     //构造方法私有
-    private Api(int hostType) {
+    private Api(Class<T> tClass) {
         //开启Log
         HttpLoggingInterceptor logInterceptor = new HttpLoggingInterceptor();
         logInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
@@ -83,14 +83,13 @@ public class Api {
         File cacheFile = new File(BaseApplication.getAppContext().getCacheDir(), "cache");
         Cache cache = new Cache(cacheFile, 1024 * 1024 * 100); //100Mb
         //增加头部信息
-        Interceptor headerInterceptor =new Interceptor() {
-            @Override
-            public Response intercept(Chain chain) throws IOException {
-                Request build = chain.request().newBuilder()
-                        .addHeader("Content-Type", "application/json")
-                        .build();
-                return chain.proceed(build);
-            }
+        Interceptor headerInterceptor = chain -> {
+            Headers headers = Headers.of(mProvider.getHeader(tClass));
+            Request build = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .headers(headers)
+                    .build();
+            return chain.proceed(build);
         };
 
         okHttpClient = new OkHttpClient.Builder()
@@ -108,34 +107,37 @@ public class Api {
                 .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create(gson))
                 .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
-                .baseUrl(ApiConstants.getHost(hostType))
+                .baseUrl(mProvider.getBaseUrl(tClass))
                 .build();
-        movieService = retrofit.create(ApiService.class);
+        mService = retrofit.create(tClass);
     }
 
+    public static boolean init(IApiProvider provider) {
+        mProvider = provider;
+        return true;
+    }
 
-    /**
-     * @param hostType NETEASE_NEWS_VIDEO：1 （新闻，视频），GANK_GIRL_PHOTO：2（图片新闻）;
-     *                 EWS_DETAIL_HTML_PHOTO:3新闻详情html图片)
-     */
-    public static ApiService getDefault(int hostType) {
-        Api retrofitManager = sRetrofitManager.get(hostType);
+    public static <T> T getService(Class<T> tClass) {
+        String key = tClass.getCanonicalName();
+        Api retrofitManager = sRetrofitManager.get(key);
         if (retrofitManager == null) {
-            retrofitManager = new Api(hostType);
-            sRetrofitManager.put(hostType, retrofitManager);
+            retrofitManager = new Api<>(tClass);
+            sRetrofitManager.put(key, retrofitManager);
         }
-        return retrofitManager.movieService;
+        return (T) retrofitManager.mService;
     }
 
     /**
      * OkHttpClient
+     *
      * @return
      */
-    public static OkHttpClient getOkHttpClient(){
-        Api retrofitManager = sRetrofitManager.get(HostType.NETEASE_NEWS_VIDEO);
+    public static <T> OkHttpClient getOkHttpClient(Class<T> tClass) {
+        String key = tClass.getCanonicalName();
+        Api retrofitManager = sRetrofitManager.get(key);
         if (retrofitManager == null) {
-            retrofitManager = new Api(HostType.NETEASE_NEWS_VIDEO);
-            sRetrofitManager.put(HostType.NETEASE_NEWS_VIDEO, retrofitManager);
+            retrofitManager = new Api<>(tClass);
+            sRetrofitManager.put(key, retrofitManager);
         }
         return retrofitManager.okHttpClient;
     }
@@ -160,13 +162,12 @@ public class Api {
             String cacheControl = request.cacheControl().toString();
             if (!NetWorkUtils.isNetConnected(BaseApplication.getAppContext())) {
                 request = request.newBuilder()
-                        .cacheControl(TextUtils.isEmpty(cacheControl)?CacheControl.FORCE_NETWORK:CacheControl.FORCE_CACHE)
+                        .cacheControl(TextUtils.isEmpty(cacheControl) ? CacheControl.FORCE_NETWORK : CacheControl.FORCE_CACHE)
                         .build();
             }
             Response originalResponse = chain.proceed(request);
             if (NetWorkUtils.isNetConnected(BaseApplication.getAppContext())) {
                 //有网的时候读接口上的@Headers里的配置，你可以在这里进行统一的设置
-
                 return originalResponse.newBuilder()
                         .header("Cache-Control", cacheControl)
                         .removeHeader("Pragma")
