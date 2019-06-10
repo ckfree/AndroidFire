@@ -16,6 +16,7 @@ import com.jaydenxiao.androidfire.ui.news.contract.NewsListContract;
 import com.jaydenxiao.androidfire.ui.news.model.NewsListModel;
 import com.jaydenxiao.androidfire.ui.news.presenter.NewsListPresenter;
 import com.jaydenxiao.common.base.BaseFragment;
+import com.jaydenxiao.common.base.BaseLazyFragment;
 import com.jaydenxiao.common.commonwidget.LoadingTip;
 
 import java.util.ArrayList;
@@ -28,7 +29,7 @@ import butterknife.Bind;
  * Created by xsf
  * on 2016.09.17:30
  */
-public class NewsFrament extends BaseFragment<NewsListPresenter, NewsListModel> implements NewsListContract.View, OnRefreshListener, OnLoadMoreListener {
+public class NewsFrament extends BaseLazyFragment<NewsListPresenter, NewsListModel> implements NewsListContract.View, OnRefreshListener, OnLoadMoreListener {
     @Bind(R.id.irc)
     IRecyclerView irc;
     @Bind(R.id.loadedTip)
@@ -38,7 +39,7 @@ public class NewsFrament extends BaseFragment<NewsListPresenter, NewsListModel> 
 
     private String mNewsId;
     private String mNewsType;
-    private int mStartPage=0;
+    private int mStartPage = 0;
 
     // 标志位，标志已经初始化完成。
     private boolean isPrepared;
@@ -55,7 +56,7 @@ public class NewsFrament extends BaseFragment<NewsListPresenter, NewsListModel> 
     }
 
     @Override
-    protected void initView() {
+    protected void _lazyLoad() {
         if (getArguments() != null) {
             mNewsId = getArguments().getString(AppConstant.NEWS_ID);
             mNewsType = getArguments().getString(AppConstant.NEWS_TYPE);
@@ -68,12 +69,11 @@ public class NewsFrament extends BaseFragment<NewsListPresenter, NewsListModel> 
         irc.setOnRefreshListener(this);
         irc.setOnLoadMoreListener(this);
         //数据为空才重新发起请求
-        if(newListAdapter.getSize()<=0) {
+        if (newListAdapter.getSize() <= 0) {
             mStartPage = 0;
             mPresenter.getNewsListDataRequest(mNewsType, mNewsId, mStartPage);
         }
     }
-
 
     @Override
     public void returnNewsListData(List<NewsSummary> newsSummaries) {
@@ -120,8 +120,8 @@ public class NewsFrament extends BaseFragment<NewsListPresenter, NewsListModel> 
 
     @Override
     public void showLoading(String title) {
-        if( newListAdapter.getPageBean().isRefresh()) {
-            if(newListAdapter.getSize()<=0) {
+        if (newListAdapter.getPageBean().isRefresh()) {
+            if (newListAdapter.getSize() <= 0) {
                 loadedTip.setLoadingTip(LoadingTip.LoadStatus.loading);
             }
         }
@@ -134,13 +134,13 @@ public class NewsFrament extends BaseFragment<NewsListPresenter, NewsListModel> 
 
     @Override
     public void showErrorTip(String msg) {
-        if( newListAdapter.getPageBean().isRefresh()) {
-            if(newListAdapter.getSize()<=0) {
+        if (newListAdapter.getPageBean().isRefresh()) {
+            if (newListAdapter.getSize() <= 0) {
                 loadedTip.setLoadingTip(LoadingTip.LoadStatus.error);
                 loadedTip.setTips(msg);
             }
             irc.setRefreshing(false);
-        }else{
+        } else {
             irc.setLoadMoreStatus(LoadMoreFooterView.Status.ERROR);
         }
     }
