@@ -41,10 +41,6 @@ public class NewsFrament extends BaseLazyFragment<NewsListPresenter, NewsListMod
     private String mNewsType;
     private int mStartPage = 0;
 
-    // 标志位，标志已经初始化完成。
-    private boolean isPrepared;
-    private boolean isVisible;
-
     @Override
     protected int getLayoutResource() {
         return R.layout.framents_news;
@@ -56,20 +52,23 @@ public class NewsFrament extends BaseLazyFragment<NewsListPresenter, NewsListMod
     }
 
     @Override
-    protected void _lazyLoad() {
+    protected void initView() {
         if (getArguments() != null) {
             mNewsId = getArguments().getString(AppConstant.NEWS_ID);
             mNewsType = getArguments().getString(AppConstant.NEWS_TYPE);
         }
         irc.setLayoutManager(new LinearLayoutManager(getContext()));
-        datas.clear();
         newListAdapter = new NewListAdapter(getContext(), datas);
         newListAdapter.openLoadAnimation(new ScaleInAnimation());
         irc.setAdapter(newListAdapter);
         irc.setOnRefreshListener(this);
         irc.setOnLoadMoreListener(this);
+    }
+
+    @Override
+    protected void _lazyLoad(boolean isFirst) {
         //数据为空才重新发起请求
-        if (newListAdapter.getSize() <= 0) {
+        if (isFirst) {
             mStartPage = 0;
             mPresenter.getNewsListDataRequest(mNewsType, mNewsId, mStartPage);
         }
@@ -144,5 +143,4 @@ public class NewsFrament extends BaseLazyFragment<NewsListPresenter, NewsListMod
             irc.setLoadMoreStatus(LoadMoreFooterView.Status.ERROR);
         }
     }
-
 }

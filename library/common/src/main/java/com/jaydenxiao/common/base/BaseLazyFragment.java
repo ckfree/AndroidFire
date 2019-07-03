@@ -3,6 +3,7 @@ package com.jaydenxiao.common.base;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.view.View;
 
 /**
@@ -11,7 +12,7 @@ import android.view.View;
  * desc   : 懒加载Fragment
  */
 public abstract class BaseLazyFragment<T extends BasePresenter, E extends BaseModel> extends BaseFragment<T, E> {
-    protected boolean isVisible;
+    private boolean isVisible;
     private boolean isPrepared;
     private boolean isFirst = true;
 
@@ -34,21 +35,16 @@ public abstract class BaseLazyFragment<T extends BasePresenter, E extends BaseMo
         lazyLoad();
     }
 
-    @Deprecated
-    @Override
-    protected void initView() {
-        //禁用
-    }
-
     private void lazyLoad() {
-        if (!isPrepared || !isVisible || !isFirst) {
+        if (!isPrepared || !isVisible) {
             return;
         }
-        _lazyLoad();
+        _lazyLoad(isFirst);
+        Log.i("~~~", "lazyLoad: "+isFirst);
         isFirst = false;
     }
 
-    protected abstract void _lazyLoad();
+    protected abstract void _lazyLoad(boolean isFirst);
 
     //do something
     protected void onInvisible() {
