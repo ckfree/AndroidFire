@@ -7,8 +7,9 @@ import java.util.HashMap;
  * time   : 2019/6/4
  * desc   :
  */
-public interface IApiProvider {
-    HashMap<String, String> getHeader(Class service);
+public interface IApiProvider extends GsonConverterFactory.IPreHandler{
 
-    String getBaseUrl(Class service);
+    String baseUrl(Class service);
+
+    HashMap<String, String> globalHeaders(Class service);
 }

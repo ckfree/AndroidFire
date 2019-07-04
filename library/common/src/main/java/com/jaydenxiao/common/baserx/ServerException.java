@@ -5,7 +5,7 @@ package com.jaydenxiao.common.baserx;
  * Created by xsf
  * on 2016.09.10:16
  */
-public class ServerException extends Exception{
+public class ServerException extends RuntimeException{
 
     public ServerException(String msg){
         super(msg);

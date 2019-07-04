@@ -18,5 +18,4 @@ public interface SinaPhotoService {
             @Header("Cache-Control") String cacheControl,
             @Path("size") int size,
             @Path("page") int page);
-
 }

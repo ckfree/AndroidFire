@@ -40,7 +40,6 @@ public abstract class BaseLazyFragment<T extends BasePresenter, E extends BaseMo
             return;
         }
         _lazyLoad(isFirst);
-        Log.i("~~~", "lazyLoad: "+isFirst);
         isFirst = false;
     }
 

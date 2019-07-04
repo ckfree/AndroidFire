@@ -1,5 +1,6 @@
 package com.jaydenxiao.androidfire.api;
 
+import com.jaydenxiao.common.baserx.ServerException;
 import com.jaydenxiao.common.http.IApiProvider;
 
 import java.util.HashMap;
@@ -12,12 +13,7 @@ import java.util.HashMap;
 public class ApiProvider implements IApiProvider {
 
     @Override
-    public HashMap<String, String> getHeader(Class service) {
-        return new HashMap<>();
-    }
-
-    @Override
-    public String getBaseUrl(Class service) {
+    public String baseUrl(Class service) {
         String host;
         if (NetEastService.class.equals(service)) {
             host = ApiConstants.NETEAST_HOST;
@@ -29,5 +25,15 @@ public class ApiProvider implements IApiProvider {
             host = "";
         }
         return host;
+    }
+
+    @Override
+    public HashMap<String, String> globalHeaders(Class service) {
+        return new HashMap<>();
+    }
+
+    @Override
+    public ServerException intercept(String response) {
+        return null;
     }
 }

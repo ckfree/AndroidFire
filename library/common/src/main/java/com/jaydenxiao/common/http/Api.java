@@ -4,15 +4,15 @@ package com.jaydenxiao.common.http;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.jaydenxiao.common.baseapp.BaseApplication;
+import com.jaydenxiao.common.commonutils.HttpsUtils;
 import com.jaydenxiao.common.commonutils.NetWorkUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 import okhttp3.Cache;
 import okhttp3.CacheControl;
@@ -21,19 +21,15 @@ import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
  * des:retorfit api
  */
 public class Api<T> {
-    //读超时长，单位：毫秒
-    private static final int READ_TIME_OUT = 7676;
-    //连接时长，单位：毫秒
-    private static final int CONNECT_TIME_OUT = 7676;
+    private static final String TAG = "OkGo";
+    private static final long DEFAULT_MILLISECONDS = 60000;      //默认的超时时间
     private Retrofit retrofit;
     private T mService;
     private OkHttpClient okHttpClient;
@@ -77,14 +73,15 @@ public class Api<T> {
     //构造方法私有
     private Api(Class<T> tClass) {
         //开启Log
-        HttpLoggingInterceptor logInterceptor = new HttpLoggingInterceptor();
-        logInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+        LoggerInterceptor loggingInterceptor = new LoggerInterceptor(TAG);
+        loggingInterceptor.setPrintLevel(LoggerInterceptor.Level.BODY);
+        loggingInterceptor.setColorLevel(Level.INFO);
         //缓存
         File cacheFile = new File(BaseApplication.getAppContext().getCacheDir(), "cache");
         Cache cache = new Cache(cacheFile, 1024 * 1024 * 100); //100Mb
         //增加头部信息
         Interceptor headerInterceptor = chain -> {
-            Headers headers = Headers.of(mProvider.getHeader(tClass));
+            Headers headers = Headers.of(mProvider.globalHeaders(tClass));
             Request build = chain.request().newBuilder()
                     .addHeader("Content-Type", "application/json")
                     .headers(headers)
@@ -92,22 +89,30 @@ public class Api<T> {
             return chain.proceed(build);
         };
 
+        HttpsUtils.SSLParams sslParams = HttpsUtils.getSslSocketFactory();
+
         okHttpClient = new OkHttpClient.Builder()
-                .readTimeout(READ_TIME_OUT, TimeUnit.MILLISECONDS)
-                .connectTimeout(CONNECT_TIME_OUT, TimeUnit.MILLISECONDS)
+                .readTimeout(Api.DEFAULT_MILLISECONDS, TimeUnit.MILLISECONDS)
+                .writeTimeout(Api.DEFAULT_MILLISECONDS, TimeUnit.MILLISECONDS)
+                .connectTimeout(Api.DEFAULT_MILLISECONDS, TimeUnit.MILLISECONDS)
                 .addInterceptor(mRewriteCacheControlInterceptor)
                 .addNetworkInterceptor(mRewriteCacheControlInterceptor)
+                //header拦截器
                 .addInterceptor(headerInterceptor)
-                .addInterceptor(logInterceptor)
+                //日志拦截器
+                .addInterceptor(loggingInterceptor)
+                //信任所有证书,不安全有风险
+                .sslSocketFactory(sslParams.sSLSocketFactory, sslParams.trustManager)
+                //https的域名匹配规则
+                .hostnameVerifier(HttpsUtils.UnSafeHostnameVerifier)
                 .cache(cache)
                 .build();
 
-        Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ssZ").serializeNulls().create();
         retrofit = new Retrofit.Builder()
                 .client(okHttpClient)
-                .addConverterFactory(GsonConverterFactory.create(gson))
+                .addConverterFactory(GsonConverterFactory.create((GsonConverterFactory.IPreHandler)mProvider))
                 .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
-                .baseUrl(mProvider.getBaseUrl(tClass))
+                .baseUrl(mProvider.baseUrl(tClass))
                 .build();
         mService = retrofit.create(tClass);
     }
